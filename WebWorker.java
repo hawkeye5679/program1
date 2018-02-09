@@ -31,6 +31,7 @@ public class WebWorker implements Runnable
 {
 private Socket socket;
 
+
 /**
 * Constructor: must have a valid open socket
 **/
@@ -47,6 +48,7 @@ public WebWorker(Socket s)
 **/
 public void run()
 {
+   String contentType;
    System.err.println("Handling connection...");
    try {
       InputStream  is = socket.getInputStream();
@@ -54,10 +56,15 @@ public void run()
       //Get the file path
       String path = readHTTPRequest(is);
       //Copy the file to a string
-      String file = copyFile( path );
-      writeHTTPHeader(os,"text/html", path);
+      contentType = content( path );
+      writeHTTPHeader(os,contentType, path);
       //Write the content to the ouput stream
-      writeContent(os, file);
+      if( contentType.contains( "text/html") ){
+         String file = copyFile( path );
+         writeContent( os, file );
+      }//end text if
+      else if( contentType.contains( "image" ) )
+         writeImage( os, path );
       //Put the output on the screen
       os.flush();
       socket.close();
@@ -184,4 +191,35 @@ private String copyFile( String s ) throws Exception {
    return file;
 }//end writeFile
 
+   private String content( String s ) {
+   
+      String ct = "";
+      if( s.toLowerCase().contains( ".gif" ) )
+         ct = "image/gif";
+      else if( s.toLowerCase().contains( ".jpeg" ) )
+         ct = "image/jpeg";
+      else if( s.toLowerCase().contains( ".png" ) )
+         ct = "image/png";
+      else if( s.toLowerCase().contains( ".html" ) )
+         ct = "text/html";
+      return ct;
+   }//end content
+   private void writeImage( OutputStream os, String path ) throws Exception {
+      
+      
+      try
+      {
+      FileInputStream image = new FileInputStream( path.substring( 1 ) );
+      byte s [ ]= new byte[ (int)(new File( path.substring( 1 )) .length( ) )  ];
+      image.read( s );
+      image.close( );
+      DataOutputStream out = new DataOutputStream( os );
+      out.write( s );
+      out.close( );
+      }
+      catch( Exception e ) {
+         System.err.println( "404 error");
+      }
+   
+   }
 } // end class
